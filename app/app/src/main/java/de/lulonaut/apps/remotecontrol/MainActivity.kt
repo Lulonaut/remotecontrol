@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Looper
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -25,6 +26,8 @@ class MainActivity : AppCompatActivity() {
     private var sendQueue: MutableList<String> = ArrayList()
     private var connected: Boolean = false
     private lateinit var connectionStatusText: TextView
+    private var changing: Boolean = false
+    private var speed: Int = 0
 
     private fun sendMessage(message: String) {
         if (!connected) return
@@ -39,7 +42,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun stopMouse() {
-        sendQueue.add("mouse stop _")
+        sendQueue.add("mouse stop _ _")
         leftToggle = false
         rightToggle = false
         upToggle = false
@@ -51,6 +54,10 @@ class MainActivity : AppCompatActivity() {
         rightToggle = false
         upToggle = false
         downToggle = false
+    }
+
+    private fun startMouse(message: String) {
+        sendQueue.add("$message $speed")
     }
 
     private fun connect() {
@@ -77,10 +84,12 @@ class MainActivity : AppCompatActivity() {
                     sendQueue.add("__KEEP_ALIVE")
                     counter = 0
                 }
-                for (item in sendQueue) {
-                    sendMessage(item)
+                if (!changing) {
+                    for (item in sendQueue) {
+                        sendMessage(item)
+                    }
+                    sendQueue.clear()
                 }
-                sendQueue.clear()
                 TimeUnit.MICROSECONDS.sleep(10000)
             }
         }.start()
@@ -89,12 +98,15 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val ipTextField: android.widget.EditText = findViewById(R.id.text_ip_address)
+        val ipTextField: EditText = findViewById(R.id.text_ip_address)
+        val speedTextField: EditText = findViewById(R.id.text_pixel_speed)
 
         val sharedPreferences: SharedPreferences =
             getSharedPreferences(getString(R.string.preference_key), Context.MODE_PRIVATE)
 
         ipTextField.setText(sharedPreferences.getString("remoteIP", "192.168.178.61"))
+        speedTextField.setText(sharedPreferences.getInt("pixel_speed", 2).toString())
+        speed = speedTextField.text.toString().toInt()
 
         connectionStatusText = findViewById(R.id.text_connection_status)
         val buttonLeft: Button = findViewById(R.id.button_left)
@@ -103,6 +115,9 @@ class MainActivity : AppCompatActivity() {
         val buttonDown: Button = findViewById(R.id.button_down)
 
         val buttonRetry: Button = findViewById(R.id.button_retry)
+        val buttonSubmit: Button = findViewById(R.id.button_submit)
+        val buttonClick: Button = findViewById(R.id.button_click)
+        val sendTextView: EditText = findViewById(R.id.text_send_to_pc)
 
         connect()
 
@@ -111,6 +126,27 @@ class MainActivity : AppCompatActivity() {
             connect()
         }
 
+        buttonClick.setOnClickListener {
+            speed = speedTextField.text.toString().toInt()
+            sharedPreferences.edit().putInt("pixel_speed", speedTextField.text.toString().toInt())
+                .apply()
+            sendQueue.add("click")
+        }
+
+
+        buttonSubmit.setOnClickListener {
+            val text: String = sendTextView.text.toString()
+            sendTextView.setText("")
+            changing = true
+            text.chars().forEach { c ->
+                if (c.toChar() == ' ') {
+                    sendQueue.add("keyboard space 0")
+                }
+                sendQueue.add("keyboard " + c.toChar() + " 0")
+                TimeUnit.MILLISECONDS.sleep(50)
+            }
+            changing = false
+        }
 
         buttonLeft.setOnClickListener {
             leftToggle = !leftToggle
@@ -119,7 +155,7 @@ class MainActivity : AppCompatActivity() {
             } else {
                 startMouseSetup()
                 leftToggle = true
-                sendQueue.add("mouse start left")
+                startMouse("mouse start left")
             }
         }
 
@@ -130,7 +166,7 @@ class MainActivity : AppCompatActivity() {
             } else {
                 startMouseSetup()
                 rightToggle = true
-                sendQueue.add("mouse start right")
+                startMouse("mouse start right")
             }
         }
 
@@ -141,7 +177,7 @@ class MainActivity : AppCompatActivity() {
             } else {
                 startMouseSetup()
                 upToggle = true
-                sendQueue.add("mouse start up")
+                startMouse("mouse start up")
             }
         }
 
@@ -152,7 +188,7 @@ class MainActivity : AppCompatActivity() {
             } else {
                 startMouseSetup()
                 downToggle = true
-                sendQueue.add("mouse start down")
+                startMouse("mouse start down")
             }
         }
     }

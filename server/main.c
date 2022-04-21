@@ -84,17 +84,24 @@ int main() {
                     split = strtok(NULL, " ");
                     char *third_arg = (char *) malloc(MAX_LINE);
                     strcpy(third_arg, split);
+                    split = strtok(NULL, " ");
+                    char *fourth_arg = (char *) malloc(MAX_LINE);
+                    strcpy(fourth_arg, split);
 
-                    int x = 0;
-                    int y = 0;
+                    int x = atoi(fourth_arg);
+                    int y = atoi(fourth_arg);
                     if (strcmp(third_arg, "left") == 0) {
-                        x = -1;
+                        x = -x;
+                        y = 0;
                     } else if (strcmp(third_arg, "right") == 0) {
-                        x = 1;
+                        x = x;
+                        y = 0;
                     } else if (strcmp(third_arg, "up") == 0) {
-                        y = -1;
+                        y = -y;
+                        x = 0;
                     } else if (strcmp(third_arg, "down") == 0) {
-                        y = 1;
+                        y = y;
+                        x = 0;
                     }
 
                     if (strcmp(second_arg, "start") == 0) {
@@ -107,7 +114,7 @@ int main() {
                     strcpy(buffer, "ok");
                 } else if (starts_with(buffer, "keyboard") == 0) {
                     puts("keyboard");
-                    int keycode, shift;
+                    int shift;
                     char *split;
                     strtok(buffer, " ");
                     split = strtok(NULL, " ");
@@ -115,13 +122,18 @@ int main() {
                     char *second_arg = (char *) malloc(MAX_LINE);
                     strcpy(second_arg, split);
                     split = strtok(NULL, " ");
-                    keycode = atoi(second_arg);
+                    KeyCode keyCode = XKeysymToKeycode(display, XStringToKeysym(second_arg));
+                    printf("keycode: %hhu\n", keyCode);
+                    if (keyCode == 19) continue;
 
                     char *third_arg = (char *) malloc(MAX_LINE);
                     strcpy(third_arg, split);
                     shift = atoi(third_arg);
-                    press_key(display, keycode, shift);
+                    press_key(display, keyCode, shift);
                     strcpy(buffer, "ok");
+                } else if (strcmp(buffer, "click") == 0) {
+                    XTestFakeButtonEvent(display, Button1, 1, 0);
+                    XTestFakeButtonEvent(display, Button1, 0, 0);
                 } else if (strcmp(buffer, "__KEEP_ALIVE") == 0) {
                     last_client_keep_alive = 0;
                 } else {
@@ -136,7 +148,7 @@ int main() {
                 write_string(conn_s, message, strlen(message));
                 keep_alive_tick = 0;
             }
-            if (last_client_keep_alive > 500) {
+            if (last_client_keep_alive > 750) {
                 puts("Client failed to send a keep alive packet on time.");
                 break;
             }

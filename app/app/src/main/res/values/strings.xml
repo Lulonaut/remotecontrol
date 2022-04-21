@@ -9,4 +9,8 @@
     <string name="status_disconnected">Status: Disconnected</string>
     <string name="ipfield_hint">PC IP adrress</string>
     <string name="preference_key">remoteControl</string>
+    <string name="send_field_hint">Send to PC</string>
+    <string name="submit">Submit</string>
+    <string name="speed_hint">Speed in px</string>
+    <string name="button_click">Click</string>
 </resources>
