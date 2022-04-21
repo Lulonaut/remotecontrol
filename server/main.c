@@ -52,95 +52,97 @@ int main() {
     }
 
     Display *display = XOpenDisplay(NULL);
-    fputs("Now accepting connections...\n", stderr);
-    if ((conn_s = accept(list_s, NULL, NULL)) < 0) {
-        fputs("Error calling accept.\n", stderr);
-        return 1;
-    }
-    printf("accepted\n");
-    int next_mouse_move_x = 0;
-    int next_mouse_move_y = 0;
-    int bytes_0_count = 0;
-    int keep_alive_tick = 0;
-    int last_client_keep_alive = 0;
     while (1) {
-        int bytes;
-        ioctl(conn_s, FIONREAD, &bytes);
-        memset(buffer, 0, MAX_LINE);
-        if (bytes > 0) {
-            last_client_keep_alive = 0;
-            bytes_0_count = 0;
-            read_string(conn_s, buffer, MAX_LINE - 1, 1);
-            buffer[strcspn(buffer, "\n")] = '\0';
-            printf("Buffer: %s\n", buffer);
-            if (starts_with(buffer, "mouse") == 0) {
-                char *split;
-                strtok(buffer, " ");
-                split = strtok(NULL, " ");
-
-                char *second_arg = (char *) malloc(MAX_LINE);
-                strcpy(second_arg, split);
-                split = strtok(NULL, " ");
-                char *third_arg = (char *) malloc(MAX_LINE);
-                strcpy(third_arg, split);
-
-                int x = 0;
-                int y = 0;
-                if (strcmp(third_arg, "left") == 0) {
-                    x = -1;
-                } else if (strcmp(third_arg, "right") == 0) {
-                    x = 1;
-                } else if (strcmp(third_arg, "up") == 0) {
-                    y = -1;
-                } else if (strcmp(third_arg, "down") == 0) {
-                    y = 1;
-                }
-
-                if (strcmp(second_arg, "start") == 0) {
-                    next_mouse_move_x = x;
-                    next_mouse_move_y = y;
-                } else if (strcmp(second_arg, "stop") == 0) {
-                    next_mouse_move_x = 0;
-                    next_mouse_move_y = 0;
-                }
-                strcpy(buffer, "ok");
-            } else if (starts_with(buffer, "keyboard") == 0) {
-                puts("keyboard");
-                int keycode, shift;
-                char *split;
-                strtok(buffer, " ");
-                split = strtok(NULL, " ");
-
-                char *second_arg = (char *) malloc(MAX_LINE);
-                strcpy(second_arg, split);
-                split = strtok(NULL, " ");
-                keycode = atoi(second_arg);
-
-                char *third_arg = (char *) malloc(MAX_LINE);
-                strcpy(third_arg, split);
-                shift = atoi(third_arg);
-                press_key(display, keycode, shift);
-                strcpy(buffer, "ok");
-            } else if (strcmp(buffer, "__KEEP_ALIVE") == 0) {
+        fputs("Now accepting connections...\n", stderr);
+        if ((conn_s = accept(list_s, NULL, NULL)) < 0) {
+            fputs("Error calling accept.\n", stderr);
+            return 1;
+        }
+        printf("accepted\n");
+        int next_mouse_move_x = 0;
+        int next_mouse_move_y = 0;
+        int bytes_0_count = 0;
+        int keep_alive_tick = 0;
+        int last_client_keep_alive = 0;
+        while (1) {
+            int bytes;
+            ioctl(conn_s, FIONREAD, &bytes);
+            memset(buffer, 0, MAX_LINE);
+            if (bytes > 0) {
                 last_client_keep_alive = 0;
-            } else {
-                strcpy(buffer, "invalid command");
+                bytes_0_count = 0;
+                read_string(conn_s, buffer, MAX_LINE - 1, 1);
+                buffer[strcspn(buffer, "\n")] = '\0';
+                printf("Buffer: %s\n", buffer);
+                if (starts_with(buffer, "mouse") == 0) {
+                    char *split;
+                    strtok(buffer, " ");
+                    split = strtok(NULL, " ");
+
+                    char *second_arg = (char *) malloc(MAX_LINE);
+                    strcpy(second_arg, split);
+                    split = strtok(NULL, " ");
+                    char *third_arg = (char *) malloc(MAX_LINE);
+                    strcpy(third_arg, split);
+
+                    int x = 0;
+                    int y = 0;
+                    if (strcmp(third_arg, "left") == 0) {
+                        x = -1;
+                    } else if (strcmp(third_arg, "right") == 0) {
+                        x = 1;
+                    } else if (strcmp(third_arg, "up") == 0) {
+                        y = -1;
+                    } else if (strcmp(third_arg, "down") == 0) {
+                        y = 1;
+                    }
+
+                    if (strcmp(second_arg, "start") == 0) {
+                        next_mouse_move_x = x;
+                        next_mouse_move_y = y;
+                    } else if (strcmp(second_arg, "stop") == 0) {
+                        next_mouse_move_x = 0;
+                        next_mouse_move_y = 0;
+                    }
+                    strcpy(buffer, "ok");
+                } else if (starts_with(buffer, "keyboard") == 0) {
+                    puts("keyboard");
+                    int keycode, shift;
+                    char *split;
+                    strtok(buffer, " ");
+                    split = strtok(NULL, " ");
+
+                    char *second_arg = (char *) malloc(MAX_LINE);
+                    strcpy(second_arg, split);
+                    split = strtok(NULL, " ");
+                    keycode = atoi(second_arg);
+
+                    char *third_arg = (char *) malloc(MAX_LINE);
+                    strcpy(third_arg, split);
+                    shift = atoi(third_arg);
+                    press_key(display, keycode, shift);
+                    strcpy(buffer, "ok");
+                } else if (strcmp(buffer, "__KEEP_ALIVE") == 0) {
+                    last_client_keep_alive = 0;
+                } else {
+                    strcpy(buffer, "invalid command");
+                }
+                write_string(conn_s, buffer, strlen(buffer));
+            } else bytes_0_count++;
+            keep_alive_tick++;
+            last_client_keep_alive++;
+            if (keep_alive_tick >= 1000) {
+                char *message = "__KEEP_ALIVE";
+                write_string(conn_s, message, strlen(message));
+                keep_alive_tick = 0;
             }
-            write_string(conn_s, buffer, strlen(buffer));
-        } else bytes_0_count++;
-        keep_alive_tick++;
-        last_client_keep_alive++;
-        if (keep_alive_tick >= 1000) {
-            char *message = "__KEEP_ALIVE";
-            write_string(conn_s, message, strlen(message));
-            keep_alive_tick = 0;
+            if (last_client_keep_alive > 500) {
+                puts("Client failed to send a keep alive packet on time.");
+                break;
+            }
+            usleep(10000);
+            move_mouse(display, next_mouse_move_x, next_mouse_move_y);
         }
-        if (last_client_keep_alive > 5000) {
-            puts("Client failed to send a keep alive packet on time.");
-            exit(0);
-        }
-        usleep(10000);
-        move_mouse(display, next_mouse_move_x, next_mouse_move_y);
     }
 }
 

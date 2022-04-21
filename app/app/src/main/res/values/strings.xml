@@ -4,4 +4,9 @@
     <string name="right">Right</string>
     <string name="up">Up</string>
     <string name="down">Down</string>
+    <string name="retry">Retry</string>
+    <string name="status_connected">Status: Connected</string>
+    <string name="status_disconnected">Status: Disconnected</string>
+    <string name="ipfield_hint">PC IP adrress</string>
+    <string name="preference_key">remoteControl</string>
 </resources>
